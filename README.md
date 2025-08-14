@@ -1,259 +1,281 @@
-# Legal Contract Summarizer & Risk Analyzer
+# 🔥 Legal Contract Summarizer & Risk Analyzer
 
-A comprehensive AI-powered legal contract analysis platform that extracts, classifies, and analyzes contract clauses to identify risks and generate plain-language summaries.
+An AI-powered web application that analyzes legal contracts using advanced NLP models to identify risks, classify clauses, and generate plain-language summaries.
 
-## 🚀 Features
+## ✨ Features
 
-### Core Functionality
 - **File Upload**: Support for PDF and DOCX contract files
-- **Text Extraction**: Advanced text extraction from legal documents
-- **AI Classification**: Clause classification using Legal-BERT models
-- **Risk Detection**: Pattern-based detection of risky contract terms
-- **Summarization**: Plain-language summaries using BART models
-- **Risk Scoring**: Comprehensive 0-100 risk assessment
-- **PDF Reports**: Downloadable analysis reports
+- **AI-Powered Analysis**: Uses Hugging Face models for clause classification and summarization
+- **Risk Detection**: Identifies high-risk clauses using pattern matching and AI analysis
+- **Smart Summarization**: Generates plain-language explanations of complex legal terms
+- **Risk Scoring**: Provides a 0-100 risk score with visual gauge representation
+- **Export Reports**: Download comprehensive PDF analysis reports
+- **Contract Library**: Manage and review previously analyzed contracts
 
-### AI/NLP Models
-- **Legal-BERT** (`nlpaueb/legal-bert-base-uncased`) for clause classification
-- **BART** (`facebook/bart-large-cnn`) for abstractive summarization
-- **spaCy** for named entity recognition and text processing
-- **Custom risk detection** using regex patterns and rule-based analysis
+## 🚀 Tech Stack
 
-## 🏗️ Architecture
-
-### Frontend (React + TypeScript)
+### Frontend
 - **React 18** with TypeScript
 - **Tailwind CSS** for styling
-- **shadcn/ui** component library
+- **Shadcn/ui** components
+- **React Router** for navigation
+- **React Query** for state management
 - **Recharts** for data visualization
-- **Axios** for API communication
+- **React PDF** for document handling
 
-### Backend (Python + FastAPI)
-- **FastAPI** for high-performance API
-- **PostgreSQL** database with SQLAlchemy ORM
-- **Transformers** library for AI models
-- **Celery + Redis** for async processing
+### Backend
+- **FastAPI** (Python) for API service
+- **SQLAlchemy** ORM with PostgreSQL
+- **Hugging Face Transformers** for NLP models
+- **spaCy** for Named Entity Recognition
+- **pdfplumber** & **python-docx** for text extraction
 - **ReportLab** for PDF generation
 
-## 🛠️ Installation & Setup
+### AI/NLP Models
+- **Legal-BERT** for clause classification
+- **BART** for text summarization
+- **spaCy** for entity extraction
+- **Rule-based patterns** for risk detection
+
+## 🛠️ Local Development Setup
 
 ### Prerequisites
-- **Node.js** 18+ and npm
-- **Python** 3.11+
-- **PostgreSQL** 15+
-- **Redis** (optional, for async processing)
+- Node.js 18+ and npm
+- Python 3.9+
+- PostgreSQL (or SQLite for development)
+- Redis (optional, for Celery tasks)
 
 ### Frontend Setup
 
-1. **Install dependencies**
-```bash
-npm install
-```
+1. **Install dependencies**:
+   ```bash
+   npm install
+   ```
 
-2. **Set up environment variables**
-```bash
-# Create .env file
-VITE_API_URL=http://localhost:8000
-```
+2. **Set environment variables**:
+   ```bash
+   cp env.example .env.local
+   # Edit .env.local with your API URL
+   ```
 
-3. **Start development server**
-```bash
-npm run dev
-```
+3. **Start development server**:
+   ```bash
+   npm run dev
+   ```
+
+4. **Build for production**:
+   ```bash
+   npm run build
+   ```
 
 ### Backend Setup
 
-1. **Navigate to backend directory**
-```bash
-cd backend
+1. **Navigate to backend directory**:
+   ```bash
+   cd backend
+   ```
+
+2. **Create virtual environment**:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+3. **Install dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Set environment variables**:
+   ```bash
+   cp env.example .env
+   # Edit .env with your configuration
+   ```
+
+5. **Install spaCy model**:
+   ```bash
+   python -m spacy download en_core_web_sm
+   ```
+
+6. **Start the server**:
+   ```bash
+   python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+   ```
+
+### Database Setup
+
+1. **PostgreSQL** (recommended for production):
+   ```bash
+   # Create database
+   createdb contracts
+   
+   # Set DATABASE_URL in .env
+   DATABASE_URL=postgresql://username:password@localhost:5432/contracts
+   ```
+
+2. **SQLite** (for development):
+   ```bash
+   # Set DATABASE_URL in .env
+   DATABASE_URL=sqlite:///./contracts.db
+   ```
+
+## 🌐 Deployment
+
+### Frontend (Netlify)
+
+1. **Build the project**:
+   ```bash
+   npm run build
+   ```
+
+2. **Deploy to Netlify**:
+   - Connect your GitHub repository
+   - Set build command: `npm run build`
+   - Set publish directory: `dist`
+   - Set environment variables in Netlify dashboard:
+     - `VITE_API_URL`: Your backend API URL
+
+3. **Custom domain** (optional):
+   - Configure in Netlify dashboard
+   - Update CORS origins in backend
+
+### Backend (Render/Railway)
+
+1. **Prepare for deployment**:
+   ```bash
+   cd backend
+   # Ensure all dependencies are in requirements.txt
+   ```
+
+2. **Deploy to Render**:
+   - Connect GitHub repository
+   - Set build command: `pip install -r requirements.txt`
+   - Set start command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+   - Add environment variables
+
+3. **Environment variables for production**:
+   ```bash
+   DATABASE_URL=your_production_postgres_url
+   CORS_ORIGINS=https://your-netlify-app.netlify.app
+   ```
+
+### Database (Supabase/NeonDB)
+
+1. **Create PostgreSQL database** on Supabase or NeonDB
+2. **Get connection string** and set as `DATABASE_URL`
+3. **Run migrations** (if using Alembic):
+   ```bash
+   cd backend
+   alembic upgrade head
+   ```
+
+## 📁 Project Structure
+
+```
+contract-sensei-57/
+├── src/                    # Frontend source code
+│   ├── components/        # React components
+│   ├── pages/            # Page components
+│   ├── services/         # API services
+│   └── hooks/            # Custom React hooks
+├── backend/               # Backend Python code
+│   ├── app/              # FastAPI application
+│   │   ├── services/     # Business logic services
+│   │   ├── models.py     # Database models
+│   │   ├── schemas.py    # Pydantic schemas
+│   │   └── main.py       # FastAPI app
+│   ├── requirements.txt  # Python dependencies
+│   └── Dockerfile        # Docker configuration
+├── netlify.toml          # Netlify configuration
+└── README.md             # This file
 ```
 
-2. **Create virtual environment**
+## 🔧 Configuration
+
+### Environment Variables
+
+**Frontend (.env.local)**:
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+VITE_API_URL=http://localhost:8000
 ```
 
-3. **Install Python dependencies**
+**Backend (.env)**:
 ```bash
-pip install -r requirements.txt
-python -m spacy download en_core_web_sm
+DATABASE_URL=postgresql://username:password@localhost:5432/contracts
+CORS_ORIGINS=http://localhost:3000,http://localhost:5173
+OPENAI_API_KEY=your_openai_api_key
+HUGGINGFACE_API_KEY=your_huggingface_api_key
 ```
 
-4. **Set up environment variables**
-```bash
-cp .env.example .env
-# Edit .env with your database credentials
+### CORS Configuration
+
+Update CORS origins in `backend/app/main.py` to include your Netlify domain:
+```python
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:8080", "http://localhost:3000", "https://your-app.netlify.app"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 ```
-
-5. **Start the API server**
-```bash
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-### Docker Setup (Recommended)
-
-1. **Start all services**
-```bash
-cd backend
-docker-compose up --build
-```
-
-This starts:
-- PostgreSQL database on port 5432
-- Redis on port 6379  
-- FastAPI backend on port 8000
-
-2. **Start frontend separately**
-```bash
-npm run dev
-```
-
-## 📊 API Endpoints
-
-### Contract Management
-- `POST /upload` - Upload contract file (PDF/DOCX)
-- `GET /contracts` - List all uploaded contracts
-
-### Analysis
-- `POST /analyze/{contract_id}` - Analyze contract with AI
-- `GET /result/{contract_id}` - Get analysis results
-- `GET /download/{contract_id}` - Download PDF report
-
-### Health Check
-- `GET /` - API status check
-
-## 🧠 AI Analysis Pipeline
-
-1. **Text Extraction**
-   - PDF: `pdfplumber` for accurate text extraction
-   - DOCX: `python-docx` for document parsing
-
-2. **Clause Classification**
-   - Legal-BERT model identifies clause types
-   - Categories: Termination, Liability, Payment, etc.
-
-3. **Risk Detection**
-   - Pattern matching for risky terms
-   - Rule-based risk assessment
-   - Contextual analysis
-
-4. **Summarization**
-   - BART model for abstractive summaries
-   - Plain-language explanations
-   - Key insights extraction
-
-5. **Risk Scoring**
-   - Weighted scoring algorithm
-   - 0-100 risk scale
-   - Category-based assessment
-
-## 🎯 Risk Categories
-
-| Category | Weight | Description |
-|----------|--------|-------------|
-| **Termination** | 20% | Contract termination clauses |
-| **Liability** | 25% | Liability and damages provisions |
-| **Payment** | 15% | Payment terms and penalties |
-| **Confidentiality** | 10% | Non-disclosure provisions |
-| **Jurisdiction** | 10% | Legal jurisdiction clauses |
-| **Indemnification** | 15% | Indemnity requirements |
-| **General** | 5% | Other contract provisions |
-
-## 🚀 Deployment
-
-### Frontend Deployment (Vercel)
-```bash
-# Build for production
-npm run build
-
-# Deploy to Vercel
-vercel --prod
-```
-
-### Backend Deployment (Railway/Render)
-```bash
-# Build Docker image
-docker build -t contract-analyzer-api .
-
-# Deploy to cloud platform
-# Follow platform-specific deployment guides
-```
-
-### Environment Variables for Production
-```bash
-# Backend
-DATABASE_URL=postgresql://user:pass@host:5432/db
-REDIS_URL=redis://host:6379/0
-MAX_FILE_SIZE=10485760
-
-# Frontend  
-VITE_API_URL=https://your-api-domain.com
-```
-
-## 📈 Performance Optimization
-
-1. **Model Caching**: AI models loaded once at startup
-2. **Async Processing**: Celery for long-running tasks
-3. **Database Indexing**: Optimized queries
-4. **CDN**: Static assets served via CDN
-5. **Compression**: Gzip compression enabled
-
-## 🔒 Security Features
-
-1. **File Validation**: Strict file type/size limits
-2. **Input Sanitization**: Clean text processing
-3. **Rate Limiting**: API request throttling
-4. **CORS**: Proper cross-origin configuration
-5. **Error Handling**: Secure error responses
 
 ## 🧪 Testing
 
 ### Frontend Tests
 ```bash
 npm run test
+npm run test:ui
 ```
 
 ### Backend Tests
 ```bash
 cd backend
-pytest tests/ --cov=app
+python -m pytest
 ```
 
-## 📝 Sample Workflow
+## 📊 API Endpoints
 
-1. **Upload**: User uploads PDF/DOCX contract
-2. **Extract**: System extracts text content
-3. **Classify**: AI categorizes contract clauses
-4. **Analyze**: Risk patterns detected and scored
-5. **Summarize**: Plain-language summary generated
-6. **Report**: Downloadable PDF report created
-7. **Review**: User reviews analysis and recommendations
+- `POST /upload` - Upload contract file
+- `POST /analyze/{contract_id}` - Run NLP analysis
+- `GET /result/{contract_id}` - Get analysis results
+- `GET /download/{contract_id}` - Download PDF report
+- `GET /contracts` - List all contracts
+
+## 🚨 Troubleshooting
+
+### Common Issues
+
+1. **CORS errors**: Ensure backend CORS origins include your frontend domain
+2. **Model loading errors**: Check if spaCy model is installed: `python -m spacy download en_core_web_sm`
+3. **Database connection**: Verify DATABASE_URL and database is running
+4. **File upload errors**: Check upload directory permissions
+
+### Performance Optimization
+
+1. **Model caching**: Models are loaded once on startup
+2. **Async processing**: Use Celery for large file processing
+3. **Database indexing**: Add indexes on frequently queried fields
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open Pull Request
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-## 🙏 Acknowledgments
+## 🆘 Support
 
-- **Hugging Face** for transformer models
-- **spaCy** for NLP processing
-- **FastAPI** for the excellent web framework
-- **React** and **Tailwind CSS** for the frontend
-- **Legal-BERT** team for the legal language model
-
-## 📞 Support
-
-For support, email support@contractai.com or create an issue in this repository.
+For support and questions:
+- Create an issue in the GitHub repository
+- Check the troubleshooting section above
+- Review the API documentation
 
 ---
 
-**Built with ❤️ for legal professionals and businesses**
+**Built with ❤️ using React, FastAPI, and AI/ML technologies**

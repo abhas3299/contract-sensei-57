@@ -6,7 +6,7 @@ import { ContractLibrary } from '@/components/ContractLibrary';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Scale, Shield, Brain, FileSearch, Zap, CheckCircle } from 'lucide-react';
+import { Scale, Shield, Brain, FileSearch, Zap, CheckCircle, FileText } from 'lucide-react';
 import { AnalysisResponse, contractAPI } from '@/services/api';
 import { toast } from '@/hooks/use-toast';
 
