@@ -1,0 +1,200 @@
+from reportlab.lib.pagesizes import letter, A4
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
+import os
+import tempfile
+from datetime import datetime
+
+class PDFGenerator:
+    def __init__(self):
+        self.styles = getSampleStyleSheet()
+        self._setup_custom_styles()
+    
+    def _setup_custom_styles(self):
+        """Setup custom styles for the PDF report"""
+        self.styles.add(ParagraphStyle(
+            name='CustomTitle',
+            parent=self.styles['Heading1'],
+            fontSize=24,
+            spaceAfter=30,
+            alignment=TA_CENTER,
+            textColor=colors.HexColor('#1e40af')
+        ))
+        
+        self.styles.add(ParagraphStyle(
+            name='RiskHigh',
+            parent=self.styles['Normal'],
+            textColor=colors.red,
+            fontSize=12
+        ))
+        
+        self.styles.add(ParagraphStyle(
+            name='RiskMedium',
+            parent=self.styles['Normal'],
+            textColor=colors.orange,
+            fontSize=12
+        ))
+        
+        self.styles.add(ParagraphStyle(
+            name='RiskLow',
+            parent=self.styles['Normal'],
+            textColor=colors.green,
+            fontSize=12
+        ))
+    
+    def generate_report(self, contract) -> str:
+        """Generate PDF report for contract analysis"""
+        # Create temporary file
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf')
+        temp_file.close()
+        
+        # Create PDF document
+        doc = SimpleDocTemplate(
+            temp_file.name,
+            pagesize=A4,
+            rightMargin=72,
+            leftMargin=72,
+            topMargin=72,
+            bottomMargin=18
+        )
+        
+        # Build content
+        story = []
+        
+        # Title
+        story.append(Paragraph("Contract Risk Analysis Report", self.styles['CustomTitle']))
+        story.append(Spacer(1, 20))
+        
+        # Contract info
+        contract_info = [
+            ['Contract Name:', contract.filename],
+            ['Analysis Date:', datetime.now().strftime('%Y-%m-%d %H:%M:%S')],
+            ['Risk Score:', f"{contract.risk_score or 0}/100"],
+            ['Risk Level:', self._get_risk_level_text(contract.risk_score or 0)]
+        ]
+        
+        info_table = Table(contract_info, colWidths=[2*inch, 4*inch])
+        info_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (0, -1), colors.grey),
+            ('TEXTCOLOR', (0, 0), (0, -1), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+            ('BACKGROUND', (1, 0), (1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        
+        story.append(info_table)
+        story.append(Spacer(1, 30))
+        
+        # Executive Summary
+        story.append(Paragraph("Executive Summary", self.styles['Heading2']))
+        story.append(Spacer(1, 12))
+        
+        summary_text = contract.summary or "No summary available."
+        story.append(Paragraph(summary_text, self.styles['Normal']))
+        story.append(Spacer(1, 20))
+        
+        # Risk Assessment
+        story.append(Paragraph("Risk Assessment", self.styles['Heading2']))
+        story.append(Spacer(1, 12))
+        
+        risk_score = contract.risk_score or 0
+        risk_level = self._get_risk_level_text(risk_score)
+        risk_color = self._get_risk_color(risk_score)
+        
+        risk_style = self.styles['RiskHigh'] if risk_score >= 70 else \
+                    self.styles['RiskMedium'] if risk_score >= 40 else \
+                    self.styles['RiskLow']
+        
+        story.append(Paragraph(f"Overall Risk Level: <b>{risk_level}</b>", risk_style))
+        story.append(Paragraph(f"Risk Score: <b>{risk_score}/100</b>", self.styles['Normal']))
+        story.append(Spacer(1, 20))
+        
+        # Risk interpretation
+        interpretation = self._get_risk_interpretation(risk_score)
+        story.append(Paragraph("Risk Interpretation:", self.styles['Heading3']))
+        story.append(Paragraph(interpretation, self.styles['Normal']))
+        story.append(Spacer(1, 20))
+        
+        # Recommendations
+        story.append(Paragraph("Recommendations", self.styles['Heading2']))
+        story.append(Spacer(1, 12))
+        
+        recommendations = self._get_recommendations(risk_score)
+        for rec in recommendations:
+            story.append(Paragraph(f"• {rec}", self.styles['Normal']))
+        
+        story.append(Spacer(1, 30))
+        
+        # Footer
+        story.append(Paragraph(
+            "This report was generated by ContractAI Legal Analysis System",
+            self.styles['Normal']
+        ))
+        
+        # Build PDF
+        doc.build(story)
+        
+        return temp_file.name
+    
+    def _get_risk_level_text(self, score: float) -> str:
+        """Convert risk score to text level"""
+        if score >= 70:
+            return "HIGH RISK"
+        elif score >= 40:
+            return "MEDIUM RISK"
+        else:
+            return "LOW RISK"
+    
+    def _get_risk_color(self, score: float):
+        """Get color for risk level"""
+        if score >= 70:
+            return colors.red
+        elif score >= 40:
+            return colors.orange
+        else:
+            return colors.green
+    
+    def _get_risk_interpretation(self, score: float) -> str:
+        """Get risk interpretation text"""
+        if score >= 70:
+            return ("This contract contains several high-risk clauses that require immediate attention. "
+                   "We strongly recommend legal review before signing.")
+        elif score >= 40:
+            return ("This contract has moderate risk factors that should be carefully reviewed. "
+                   "Consider negotiating certain terms to reduce potential risks.")
+        else:
+            return ("This contract appears to have minimal risk factors. "
+                   "The terms seem generally favorable and standard for this type of agreement.")
+    
+    def _get_recommendations(self, score: float) -> list:
+        """Get recommendations based on risk score"""
+        if score >= 70:
+            return [
+                "Seek legal counsel before signing this contract",
+                "Negotiate high-risk clauses identified in the analysis",
+                "Consider adding protective clauses and limitations",
+                "Review termination and liability provisions carefully",
+                "Ensure all terms are clearly defined and understood"
+            ]
+        elif score >= 40:
+            return [
+                "Review medium-risk clauses with legal advisor",
+                "Negotiate unfavorable terms where possible",
+                "Clarify ambiguous language in the contract",
+                "Consider adding mutual protections",
+                "Ensure compliance requirements are manageable"
+            ]
+        else:
+            return [
+                "Contract appears to have standard terms",
+                "Perform final review of key business terms",
+                "Ensure all parties understand their obligations",
+                "Keep records of contract execution and performance",
+                "Monitor compliance with contract terms"
+            ]

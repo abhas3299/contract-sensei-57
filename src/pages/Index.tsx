@@ -1,46 +1,60 @@
 import { useState } from 'react';
 import { FileUpload } from '@/components/FileUpload';
 import { ContractDashboard } from '@/components/ContractDashboard';
+import { ContractAnalyzer } from '@/components/ContractAnalyzer';
 import { ContractLibrary } from '@/components/ContractLibrary';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Scale, Shield, Brain, FileSearch, Zap, CheckCircle } from 'lucide-react';
-import { mockContracts, MockContract, getContractById } from '@/data/mockContracts';
+import { AnalysisResponse, contractAPI } from '@/services/api';
 import { toast } from '@/hooks/use-toast';
 
 type ViewMode = 'home' | 'upload' | 'analyzing' | 'dashboard' | 'library';
 
 const Index = () => {
   const [currentView, setCurrentView] = useState<ViewMode>('home');
-  const [selectedContract, setSelectedContract] = useState<MockContract | null>(null);
+  const [selectedAnalysis, setSelectedAnalysis] = useState<AnalysisResponse | null>(null);
+  const [selectedFileName, setSelectedFileName] = useState<string>('');
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [currentContractId, setCurrentContractId] = useState<string>('');
 
   const handleFileSelect = (file: File) => {
     setUploadedFile(file);
-    setCurrentView('analyzing');
-    
-    // Simulate analysis process
-    setTimeout(() => {
-      // Use first mock contract as result
-      setSelectedContract(mockContracts[0]);
-      setCurrentView('dashboard');
-      toast({
-        title: "Analysis Complete",
-        description: "Your contract has been analyzed for risks and key clauses.",
-      });
-    }, 3000);
   };
 
-  const handleSelectContract = (contract: MockContract) => {
-    setSelectedContract(contract);
+  const handleUploadComplete = (contractId: string) => {
+    setCurrentContractId(contractId);
+    setCurrentView('analyzing');
+  };
+
+  const handleAnalysisComplete = (analysis: AnalysisResponse) => {
+    setSelectedAnalysis(analysis);
+    setSelectedFileName(uploadedFile?.name || 'Unknown');
     setCurrentView('dashboard');
   };
 
-  if (currentView === 'dashboard' && selectedContract) {
+  const handleSelectContract = async (contractId: string, fileName: string) => {
+    try {
+      const analysis = await contractAPI.getAnalysisResult(contractId);
+      setSelectedAnalysis(analysis);
+      setSelectedFileName(fileName);
+      setCurrentView('dashboard');
+    } catch (error) {
+      console.error('Error loading analysis:', error);
+      toast({
+        title: "Error loading analysis",
+        description: "There was an error loading the contract analysis.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (currentView === 'dashboard' && selectedAnalysis) {
     return (
       <ContractDashboard 
-        contract={selectedContract} 
+        analysis={selectedAnalysis}
+        fileName={selectedFileName}
         onBack={() => setCurrentView('home')} 
       />
     );
@@ -48,27 +62,12 @@ const Index = () => {
 
   if (currentView === 'analyzing') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background to-primary/5 flex items-center justify-center p-6">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-8 text-center space-y-6">
-            <div className="mx-auto w-16 h-16 bg-gradient-to-br from-primary to-primary-light rounded-full flex items-center justify-center animate-spin">
-              <Brain className="w-8 h-8 text-primary-foreground" />
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-xl font-semibold">Analyzing Contract</h3>
-              <p className="text-muted-foreground">
-                Our AI is examining your contract for risks, clauses, and generating summaries...
-              </p>
-            </div>
-            <div className="space-y-2">
-              <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-primary to-primary-light animate-pulse w-3/4 transition-all duration-1000" />
-              </div>
-              <p className="text-sm text-muted-foreground">Processing: {uploadedFile?.name}</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <ContractAnalyzer
+        contractId={currentContractId}
+        fileName={uploadedFile?.name || 'Unknown'}
+        onComplete={handleAnalysisComplete}
+        onBack={() => setCurrentView('home')}
+      />
     );
   }
 
@@ -121,7 +120,10 @@ const Index = () => {
               </p>
             </div>
             <div className="max-w-2xl mx-auto">
-              <FileUpload onFileSelect={handleFileSelect} />
+              <FileUpload 
+                onFileSelect={handleFileSelect}
+                onUploadComplete={handleUploadComplete}
+              />
             </div>
           </div>
         ) : (
@@ -199,55 +201,48 @@ const Index = () => {
             {/* Sample Results */}
             <div className="space-y-8">
               <div className="text-center space-y-4">
-                <h2 className="text-3xl font-bold text-foreground">See AI Analysis in Action</h2>
+                <h2 className="text-3xl font-bold text-foreground">Real AI-Powered Analysis</h2>
                 <p className="text-lg text-muted-foreground">
-                  Explore sample contract analyses to see how our AI identifies risks and explains clauses
+                  Upload your contracts to see how our AI identifies risks and explains clauses using advanced NLP models
                 </p>
               </div>
               
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {mockContracts.map((contract) => (
-                  <Card 
-                    key={contract.id} 
-                    className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-105"
-                    onClick={() => handleSelectContract(contract)}
-                  >
-                    <CardContent className="p-6 space-y-4">
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-1">
-                          <h4 className="font-semibold text-foreground line-clamp-2">
-                            {contract.name}
-                          </h4>
-                          <p className="text-sm text-muted-foreground">{contract.type}</p>
-                        </div>
-                        <Badge variant={contract.riskScore >= 70 ? 'destructive' : contract.riskScore >= 40 ? 'secondary' : 'outline'}>
-                          {contract.riskScore >= 70 ? 'HIGH' : contract.riskScore >= 40 ? 'MED' : 'LOW'}
-                        </Badge>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Risk Score</span>
-                          <span className="font-semibold">{contract.riskScore}/100</span>
-                        </div>
-                        <div className="w-full bg-muted rounded-full h-2">
-                          <div 
-                            className={`h-full rounded-full transition-all duration-300 ${
-                              contract.riskScore >= 70 ? 'bg-risk-high' :
-                              contract.riskScore >= 40 ? 'bg-risk-medium' : 'bg-risk-low'
-                            }`}
-                            style={{ width: `${contract.riskScore}%` }}
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <CheckCircle className="w-4 h-4" />
-                        {contract.clauses.length} clauses analyzed
-                      </div>
+              <div className="text-center space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <Card className="p-4 bg-gradient-to-br from-primary/10 to-primary/5">
+                    <CardContent className="p-0 text-center">
+                      <Brain className="w-8 h-8 text-primary mx-auto mb-2" />
+                      <h4 className="font-semibold">BERT Classification</h4>
+                      <p className="text-sm text-muted-foreground">Legal-BERT model for clause classification</p>
                     </CardContent>
                   </Card>
-                ))}
+                  <Card className="p-4 bg-gradient-to-br from-risk-medium/10 to-risk-medium/5">
+                    <CardContent className="p-0 text-center">
+                      <Shield className="w-8 h-8 text-risk-medium mx-auto mb-2" />
+                      <h4 className="font-semibold">Risk Detection</h4>
+                      <p className="text-sm text-muted-foreground">Pattern matching for risky clauses</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="p-4 bg-gradient-to-br from-risk-low/10 to-risk-low/5">
+                    <CardContent className="p-0 text-center">
+                      <FileText className="w-8 h-8 text-risk-low mx-auto mb-2" />
+                      <h4 className="font-semibold">BART Summarization</h4>
+                      <p className="text-sm text-muted-foreground">Abstractive summarization model</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="p-4 bg-gradient-to-br from-risk-high/10 to-risk-high/5">
+                    <CardContent className="p-0 text-center">
+                      <Zap className="w-8 h-8 text-risk-high mx-auto mb-2" />
+                      <h4 className="font-semibold">Real-time Analysis</h4>
+                      <p className="text-sm text-muted-foreground">Fast processing with FastAPI backend</p>
+                    </CardContent>
+                  </Card>
+                </div>
+                
+                <Button variant="hero" size="xl" onClick={() => setCurrentView('upload')}>
+                  <FileSearch className="w-5 h-5" />
+                  Try AI Analysis Now
+                </Button>
               </div>
             </div>
           </div>

@@ -1,15 +1,18 @@
 import { useState, useCallback } from 'react';
-import { Upload, FileText, AlertCircle } from 'lucide-react';
+import { Upload, FileText, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
+import { contractAPI } from '@/services/api';
 
 interface FileUploadProps {
   onFileSelect: (file: File) => void;
+  onUploadComplete?: (contractId: string) => void;
 }
 
-export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
+export const FileUpload = ({ onFileSelect, onUploadComplete }: FileUploadProps) => {
   const [isDragOver, setIsDragOver] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -28,15 +31,13 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
     const files = Array.from(e.dataTransfer.files);
     const validFile = files.find(file => 
       file.type === 'application/pdf' || 
-      file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+      file.name.toLowerCase().endsWith('.pdf') ||
+      file.name.toLowerCase().endsWith('.docx')
     );
 
     if (validFile) {
-      onFileSelect(validFile);
-      toast({
-        title: "File uploaded successfully",
-        description: `${validFile.name} is ready for analysis.`,
-      });
+      handleFileUpload(validFile);
     } else {
       toast({
         title: "Invalid file type",
@@ -44,18 +45,41 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
         variant: "destructive",
       });
     }
-  }, [onFileSelect]);
+  }, []);
 
   const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      handleFileUpload(file);
+    }
+  }, []);
+
+  const handleFileUpload = async (file: File) => {
+    setIsUploading(true);
+    
+    try {
       onFileSelect(file);
+      const response = await contractAPI.uploadContract(file);
+      
       toast({
         title: "File uploaded successfully",
         description: `${file.name} is ready for analysis.`,
       });
+      
+      if (onUploadComplete) {
+        onUploadComplete(response.id);
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({
+        title: "Upload failed",
+        description: "There was an error uploading your file. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
     }
-  }, [onFileSelect]);
+  };
 
   return (
     <Card className="p-12 border-2 border-dashed border-primary/30 bg-gradient-to-br from-primary/5 to-primary/10 hover:border-primary/50 transition-all duration-300">
@@ -83,9 +107,18 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
 
         <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
           <label htmlFor="file-upload">
-            <Button variant="hero" size="lg" className="cursor-pointer">
-              <FileText className="w-5 h-5" />
-              Choose File
+            <Button variant="hero" size="lg" className="cursor-pointer" disabled={isUploading}>
+              {isUploading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <FileText className="w-5 h-5" />
+                  Choose File
+                </>
+              )}
             </Button>
           </label>
           <input
@@ -93,6 +126,7 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
             type="file"
             accept=".pdf,.docx"
             onChange={handleFileInput}
+            disabled={isUploading}
             className="hidden"
           />
         </div>

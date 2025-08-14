@@ -5,31 +5,53 @@ import { Badge } from '@/components/ui/badge';
 import { RiskGauge } from '@/components/RiskGauge';
 import { ClauseAnalysis } from '@/components/ClauseAnalysis';
 import { Download, FileText, Calendar, TrendingUp, AlertTriangle } from 'lucide-react';
-import { MockContract } from '@/data/mockContracts';
+import { AnalysisResponse, contractAPI } from '@/services/api';
 import { toast } from '@/hooks/use-toast';
 
 interface ContractDashboardProps {
-  contract: MockContract;
+  analysis: AnalysisResponse;
+  fileName: string;
   onBack: () => void;
 }
 
-export const ContractDashboard = ({ contract, onBack }: ContractDashboardProps) => {
+export const ContractDashboard = ({ analysis, fileName, onBack }: ContractDashboardProps) => {
   const [isExporting, setIsExporting] = useState(false);
 
   const handleExport = async () => {
     setIsExporting(true);
-    // Simulate export process
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setIsExporting(false);
-    toast({
-      title: "Export completed",
-      description: "Contract analysis report has been downloaded.",
-    });
+    
+    try {
+      const blob = await contractAPI.downloadReport(analysis.contract_id);
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `analysis_report_${fileName}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast({
+        title: "Export completed",
+        description: "Contract analysis report has been downloaded.",
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({
+        title: "Export failed",
+        description: "There was an error generating the report. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
   };
 
-  const highRiskClauses = contract.clauses.filter(c => c.riskLevel === 'high').length;
-  const mediumRiskClauses = contract.clauses.filter(c => c.riskLevel === 'medium').length;
-  const lowRiskClauses = contract.clauses.filter(c => c.riskLevel === 'low').length;
+  const highRiskClauses = analysis.clauses.filter(c => c.risk_level === 'high').length;
+  const mediumRiskClauses = analysis.clauses.filter(c => c.risk_level === 'medium').length;
+  const lowRiskClauses = analysis.clauses.filter(c => c.risk_level === 'low').length;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-primary/5 p-6">
@@ -40,15 +62,15 @@ export const ContractDashboard = ({ contract, onBack }: ContractDashboardProps) 
             <Button variant="ghost" onClick={onBack} className="mb-2">
               ← Back to Upload
             </Button>
-            <h1 className="text-3xl font-bold text-foreground">{contract.name}</h1>
+            <h1 className="text-3xl font-bold text-foreground">{fileName}</h1>
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <div className="flex items-center gap-1">
                 <FileText className="w-4 h-4" />
-                {contract.type}
+                Contract Analysis
               </div>
               <div className="flex items-center gap-1">
                 <Calendar className="w-4 h-4" />
-                Uploaded {new Date(contract.uploadDate).toLocaleDateString()}
+                Analyzed {new Date().toLocaleDateString()}
               </div>
             </div>
           </div>
@@ -110,7 +132,7 @@ export const ContractDashboard = ({ contract, onBack }: ContractDashboardProps) 
               <CardTitle className="text-sm font-medium text-primary">Total Clauses</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-primary">{contract.clauses.length}</div>
+              <div className="text-2xl font-bold text-primary">{analysis.clauses.length}</div>
               <p className="text-xs text-muted-foreground">Analyzed</p>
             </CardContent>
           </Card>
@@ -127,7 +149,7 @@ export const ContractDashboard = ({ contract, onBack }: ContractDashboardProps) 
               </CardTitle>
             </CardHeader>
             <CardContent className="flex justify-center">
-              <RiskGauge score={contract.riskScore} />
+              <RiskGauge score={analysis.risk_score} />
             </CardContent>
           </Card>
 
@@ -142,7 +164,7 @@ export const ContractDashboard = ({ contract, onBack }: ContractDashboardProps) 
             <CardContent>
               <div className="prose prose-sm max-w-none">
                 <p className="text-muted-foreground leading-relaxed">
-                  {contract.summary}
+                  {analysis.summary}
                 </p>
               </div>
               <div className="mt-4 pt-4 border-t">
@@ -165,7 +187,14 @@ export const ContractDashboard = ({ contract, onBack }: ContractDashboardProps) 
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ClauseAnalysis clauses={contract.clauses} />
+            <ClauseAnalysis clauses={analysis.clauses.map(clause => ({
+              id: clause.id,
+              type: clause.type,
+              content: clause.content,
+              riskLevel: clause.risk_level,
+              explanation: clause.explanation,
+              suggestion: clause.suggestion
+            }))} />
           </CardContent>
         </Card>
       </div>
